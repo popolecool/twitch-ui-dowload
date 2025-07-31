@@ -1,0 +1,21 @@
+{
+  "quality": "best",
+  "video_format": "mkv",
+  "auto_replicate": false,
+  "auto_check_live": true,
+  "check_interval": 30,
+  "low_power_mode": false,
+  "auto_process_time": "04:30",
+  "smart_processing": false,
+  "ftp_enabled": false,
+  "ftp_host": "",
+  "ftp_user": "",
+  "ftp_password": "",
+  "ftp_path": "/",
+  "smb_enabled": false,
+  "smb_host": "",
+  "smb_share": "",
+  "smb_user": "",
+  "smb_password": "",
+  "smb_path": "/"
+}

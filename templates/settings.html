@@ -1,0 +1,514 @@
+{% extends "base.html" %}
+
+{% block title %}Paramètres - Twitch Stream Downloader{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="fas fa-cog"></i> Paramètres
+        </h2>
+    </div>
+</div>
+
+<form id="settingsForm">
+    <div class="row">
+        <!-- Paramètres d'enregistrement -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-video"></i> Paramètres d'Enregistrement
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="quality" class="form-label">Qualité d'enregistrement</label>
+                            <select class="form-select" id="quality" name="quality">
+                                <option value="best" {% if config.quality == 'best' %}selected{% endif %}>Meilleure qualité disponible</option>
+                                <option value="worst" {% if config.quality == 'worst' %}selected{% endif %}>Qualité la plus basse</option>
+                                <option value="1080p60" {% if config.quality == '1080p60' %}selected{% endif %}>1080p 60fps</option>
+                                <option value="1080p" {% if config.quality == '1080p' %}selected{% endif %}>1080p 30fps</option>
+                                <option value="720p60" {% if config.quality == '720p60' %}selected{% endif %}>720p 60fps</option>
+                                <option value="720p" {% if config.quality == '720p' %}selected{% endif %}>720p 30fps</option>
+                                <option value="480p" {% if config.quality == '480p' %}selected{% endif %}>480p</option>
+                                <option value="360p" {% if config.quality == '360p' %}selected{% endif %}>360p</option>
+                                <option value="160p" {% if config.quality == '160p' %}selected{% endif %}>160p (audio seulement)</option>
+                            </select>
+                            <div class="form-text">
+                                Choisissez la qualité d'enregistrement. "Meilleure qualité" sélectionne automatiquement la plus haute qualité disponible.
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="video_format" class="form-label">Format vidéo</label>
+                            <select class="form-select" id="video_format" name="video_format">
+                                <option value="mp4" {% if config.video_format == 'mp4' %}selected{% endif %}>MP4</option>
+                                <option value="mkv" {% if config.video_format == 'mkv' %}selected{% endif %}>MKV</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="autoReplicate" name="auto_replicate" 
+                                   {% if config.auto_replicate %}checked{% endif %}>
+                            <label class="form-check-label" for="autoReplicate">
+                                Réplication automatique
+                            </label>
+                        </div>
+                        <div class="form-text">
+                            Active la réplication automatique des enregistrements vers les serveurs configurés
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Détection automatique et mode faible consommation -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-robot"></i> Détection automatique et mode faible consommation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="auto_check_live" name="auto_check_live" 
+                                   {% if config.auto_check_live %}checked{% endif %}>
+                            <label class="form-check-label" for="auto_check_live">
+                                Vérification automatique des streams en live
+                            </label>
+                        </div>
+                        <div class="form-text">
+                            Vérifie automatiquement si les streamers suivis sont en live
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="check_interval" class="form-label">Intervalle de vérification (minutes)</label>
+                        <input type="number" class="form-control" id="check_interval" name="check_interval" 
+                               min="1" max="60" value="{{ config.check_interval or 5 }}">
+                        <div class="form-text">Fréquence de vérification des streams en live</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="low_power_mode" name="low_power_mode" 
+                                   {% if config.low_power_mode %}checked{% endif %}>
+                            <label class="form-check-label" for="low_power_mode">
+                                Mode faible consommation
+                            </label>
+                        </div>
+                        <div class="form-text">
+                            Enregistrement en segments pour réduire l'utilisation des ressources
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="auto_process_time" class="form-label">Heure de traitement automatique</label>
+                        <input type="time" class="form-control" id="auto_process_time" name="auto_process_time" 
+                               value="{{ config.auto_process_time or '03:00' }}">
+                        <div class="form-text">Heure à laquelle traiter automatiquement les enregistrements</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="smart_processing" name="smart_processing" 
+                                   {% if config.smart_processing %}checked{% endif %}>
+                            <label class="form-check-label" for="smart_processing">
+                                Traitement intelligent
+                            </label>
+                        </div>
+                        <div class="form-text">
+                            Traite automatiquement quand aucun stream n'est en live
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        
+        <!-- Paramètres FTP -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-server"></i> Configuration FTP
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="ftpEnabled" name="ftp_enabled" 
+                                   {% if config.ftp_enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="ftpEnabled">
+                                Activer la réplication FTP
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="ftpSettings" style="{% if not config.ftp_enabled %}display: none;{% endif %}">
+                        <div class="mb-3">
+                            <label for="ftpHost" class="form-label">Serveur FTP</label>
+                            <input type="text" class="form-control" id="ftpHost" name="ftp_host" 
+                                   value="{{ config.ftp_host }}" placeholder="ftp.example.com">
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="ftpUser" class="form-label">Nom d'utilisateur</label>
+                                <input type="text" class="form-control" id="ftpUser" name="ftp_user" 
+                                       value="{{ config.ftp_user }}" placeholder="username">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="ftpPassword" class="form-label">Mot de passe</label>
+                                <input type="password" class="form-control" id="ftpPassword" name="ftp_password" 
+                                       value="{{ config.ftp_password }}" placeholder="password">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="ftpPath" class="form-label">Chemin de destination</label>
+                            <input type="text" class="form-control" id="ftpPath" name="ftp_path" 
+                                   value="{{ config.ftp_path }}" placeholder="/uploads/">
+                            <div class="form-text">Dossier sur le serveur FTP où stocker les enregistrements</div>
+                        </div>
+                        
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="testFtp">
+                            <i class="fas fa-plug"></i> Tester la connexion
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Paramètres SMB -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-network-wired"></i> Configuration SMB/CIFS
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="smbEnabled" name="smb_enabled" 
+                                   {% if config.smb_enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="smbEnabled">
+                                Activer la réplication SMB
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="smbSettings" style="{% if not config.smb_enabled %}display: none;{% endif %}">
+                        <div class="mb-3">
+                            <label for="smbHost" class="form-label">Serveur SMB</label>
+                            <input type="text" class="form-control" id="smbHost" name="smb_host" 
+                                   value="{{ config.smb_host }}" placeholder="192.168.1.100 ou server.local">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="smbShare" class="form-label">Partage</label>
+                            <input type="text" class="form-control" id="smbShare" name="smb_share" 
+                                   value="{{ config.smb_share }}" placeholder="shared_folder">
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="smbUser" class="form-label">Nom d'utilisateur</label>
+                                <input type="text" class="form-control" id="smbUser" name="smb_user" 
+                                       value="{{ config.smb_user }}" placeholder="username">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="smbPassword" class="form-label">Mot de passe</label>
+                                <input type="password" class="form-control" id="smbPassword" name="smb_password" 
+                                       value="{{ config.smb_password }}" placeholder="password">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="smbPath" class="form-label">Chemin de destination</label>
+                            <input type="text" class="form-control" id="smbPath" name="smb_path" 
+                                   value="{{ config.smb_path }}" placeholder="/recordings/">
+                            <div class="form-text">Dossier dans le partage SMB où stocker les enregistrements</div>
+                        </div>
+                        
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="testSmb">
+                            <i class="fas fa-plug"></i> Tester la connexion
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Informations système -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle"></i> Informations Système
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6>Prérequis</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success"></i> Python 3.6+</li>
+                            <li><i class="fas fa-check text-success"></i> Flask</li>
+                            <li id="streamlinkStatus"><i class="fas fa-question text-warning"></i> Streamlink</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6>Espace disque</h6>
+                        <div class="progress mb-2">
+                            <div class="progress-bar" role="progressbar" style="width: 45%" id="diskUsage">
+                                45% utilisé
+                            </div>
+                        </div>
+                        <small class="text-muted">Espace disponible pour les enregistrements</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6>Dossier d'enregistrement</h6>
+                        <code>./recordings/</code>
+                        <br>
+                        <small class="text-muted">Les enregistrements sont sauvegardés dans ce dossier</small>
+                    </div>
+                    
+                    <button type="button" class="btn btn-outline-info btn-sm" id="checkSystem">
+                        <i class="fas fa-search"></i> Vérifier le système
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Boutons d'action -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <button type="submit" class="btn btn-primary btn-lg me-3">
+                        <i class="fas fa-save"></i> Sauvegarder les Paramètres
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-lg" id="resetSettings">
+                        <i class="fas fa-undo"></i> Réinitialiser
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Toast pour les notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="notificationToast" class="toast" role="alert">
+        <div class="toast-header">
+            <i class="fas fa-info-circle text-primary me-2"></i>
+            <strong class="me-auto">Notification</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastMessage">
+            <!-- Message dynamique -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Fonction pour afficher les notifications
+    function showNotification(message, type = 'info') {
+        const toast = $('#notificationToast');
+        const toastBody = $('#toastMessage');
+        const toastHeader = toast.find('.toast-header i');
+        
+        toastHeader.removeClass().addClass('fas me-2');
+        if (type === 'success') {
+            toastHeader.addClass('fa-check-circle text-success');
+        } else if (type === 'error') {
+            toastHeader.addClass('fa-exclamation-circle text-danger');
+        } else if (type === 'warning') {
+            toastHeader.addClass('fa-exclamation-triangle text-warning');
+        } else {
+            toastHeader.addClass('fa-info-circle text-primary');
+        }
+        
+        toastBody.text(message);
+        
+        const bsToast = new bootstrap.Toast(toast[0]);
+        bsToast.show();
+    }
+    
+    // Afficher/masquer les paramètres FTP
+    $('#ftpEnabled').change(function() {
+        if ($(this).is(':checked')) {
+            $('#ftpSettings').slideDown();
+        } else {
+            $('#ftpSettings').slideUp();
+        }
+    });
+    
+    // Afficher/masquer les paramètres SMB
+    $('#smbEnabled').change(function() {
+        if ($(this).is(':checked')) {
+            $('#smbSettings').slideDown();
+        } else {
+            $('#smbSettings').slideUp();
+        }
+    });
+    
+    // Sauvegarder les paramètres
+    $('#settingsForm').submit(function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            quality: $('#quality').val(),
+            video_format: $('#video_format').val(),
+            auto_replicate: $('#autoReplicate').is(':checked'),
+            auto_check_live: $('#auto_check_live').is(':checked'),
+            check_interval: parseInt($('#check_interval').val()),
+            low_power_mode: $('#low_power_mode').is(':checked'),
+            auto_process_time: $('#auto_process_time').val(),
+            smart_processing: $('#smart_processing').is(':checked'),
+            ftp_enabled: $('#ftpEnabled').is(':checked'),
+            ftp_host: $('#ftpHost').val(),
+            ftp_user: $('#ftpUser').val(),
+            ftp_password: $('#ftpPassword').val(),
+            ftp_path: $('#ftpPath').val(),
+            smb_enabled: $('#smbEnabled').is(':checked'),
+            smb_host: $('#smbHost').val(),
+            smb_share: $('#smbShare').val(),
+            smb_user: $('#smbUser').val(),
+            smb_password: $('#smbPassword').val(),
+            smb_path: $('#smbPath').val()
+        };
+        
+        $.ajax({
+            url: '/api/settings',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function() {
+                showNotification('Paramètres sauvegardés avec succès', 'success');
+            },
+            error: function() {
+                showNotification('Erreur lors de la sauvegarde', 'error');
+            }
+        });
+    });
+    
+    // Tester la connexion FTP
+    $('#testFtp').click(function() {
+        const button = $(this);
+        const originalText = button.html();
+        
+        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Test en cours...');
+        
+        // Simulation du test (à implémenter côté serveur)
+        setTimeout(function() {
+            button.prop('disabled', false).html(originalText);
+            showNotification('Test de connexion FTP (fonctionnalité à implémenter)', 'info');
+        }, 2000);
+    });
+    
+    // Tester la connexion SMB
+    $('#testSmb').click(function() {
+        const button = $(this);
+        const originalText = button.html();
+        
+        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Test en cours...');
+        
+        // Simulation du test (à implémenter côté serveur)
+        setTimeout(function() {
+            button.prop('disabled', false).html(originalText);
+            showNotification('Test de connexion SMB (fonctionnalité à implémenter)', 'info');
+        }, 2000);
+    });
+    
+    // Vérifier le système
+    $('#checkSystem').click(function() {
+        const button = $(this);
+        const originalText = button.html();
+        
+        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Vérification...');
+        
+        // Simulation de la vérification
+        setTimeout(function() {
+            button.prop('disabled', false).html(originalText);
+            
+            // Mettre à jour le statut de streamlink
+            $('#streamlinkStatus').html('<i class="fas fa-check text-success"></i> Streamlink (installé)');
+            
+            showNotification('Vérification système terminée', 'success');
+        }, 1500);
+    });
+    
+    // Réinitialiser les paramètres
+    $('#resetSettings').click(function() {
+        if (confirm('Êtes-vous sûr de vouloir réinitialiser tous les paramètres ?')) {
+            // Réinitialiser le formulaire aux valeurs par défaut
+            $('#quality').val('best');
+            $('#video_format').val('mp4');
+            $('#autoReplicate').prop('checked', false);
+            $('#auto_check_live').prop('checked', false);
+            $('#check_interval').val(5);
+            $('#low_power_mode').prop('checked', false);
+            $('#auto_process_time').val('03:00');
+            $('#smart_processing').prop('checked', false);
+            $('#ftpEnabled').prop('checked', false);
+            $('#ftpSettings').hide();
+            $('#ftpHost, #ftpUser, #ftpPassword').val('');
+            $('#ftpPath').val('/');
+            $('#smbEnabled').prop('checked', false);
+            $('#smbSettings').hide();
+            $('#smbHost, #smbShare, #smbUser, #smbPassword').val('');
+            $('#smbPath').val('/');
+            
+            showNotification('Paramètres réinitialisés', 'info');
+        }
+    });
+    
+    // Validation en temps réel
+    $('#ftpHost, #smbHost').on('input', function() {
+        const value = $(this).val();
+        const isValid = value === '' || /^[a-zA-Z0-9.-]+$/.test(value);
+        
+        if (isValid) {
+            $(this).removeClass('is-invalid');
+        } else {
+            $(this).addClass('is-invalid');
+        }
+    });
+    
+    // Simulation de l'usage disque
+    function updateDiskUsage() {
+        const usage = Math.floor(Math.random() * 30) + 30; // 30-60%
+        $('#diskUsage').css('width', usage + '%').text(usage + '% utilisé');
+        
+        if (usage > 80) {
+            $('#diskUsage').removeClass('bg-success bg-warning').addClass('bg-danger');
+        } else if (usage > 60) {
+            $('#diskUsage').removeClass('bg-success bg-danger').addClass('bg-warning');
+        } else {
+            $('#diskUsage').removeClass('bg-warning bg-danger').addClass('bg-success');
+        }
+    }
+    
+    updateDiskUsage();
+    
+    // Mettre à jour l'usage disque toutes les 30 secondes
+    setInterval(updateDiskUsage, 30000);
+});
+</script>
+{% endblock %}

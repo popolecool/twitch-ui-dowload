@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}Traitement des segments - Twitch Stream Downloader{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-cogs"></i> Traitement des segments</h1>
+                <div>
+                    <button class="btn btn-primary" onclick="processAllSegments()">
+                        <i class="fas fa-play"></i> Traiter tous les segments
+                    </button>
+                    <button class="btn btn-info" onclick="refreshStatus()">
+                        <i class="fas fa-sync-alt"></i> Actualiser
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statut du système -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Statut du système</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-primary" id="activeRecordings">0</h4>
+                                <small class="text-muted">Enregistrements actifs</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-warning" id="processingQueue">0</h4>
+                                <small class="text-muted">En file d'attente</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h4 class="text-info" id="tempSegments">0</h4>
+                                <small class="text-muted">Segments temporaires</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <span class="badge bg-success" id="liveCheckerStatus">Inactif</span><br>
+                                <small class="text-muted">Vérificateur automatique</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File d'attente de traitement -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> File d'attente de traitement</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="processingTable">
+                            <thead>
+                                <tr>
+                                    <th>Stream</th>
+                                    <th>Date d'enregistrement</th>
+                                    <th>Nombre de segments</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="processingTableBody">
+                                <!-- Les données seront chargées dynamiquement -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="noProcessingData" class="text-center text-muted py-4" style="display: none;">
+                        <i class="fas fa-inbox fa-3x mb-3"></i>
+                        <p>Aucun segment en attente de traitement</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de progression -->
+<div class="modal fade" id="progressModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Traitement en cours</h5>
+            </div>
+            <div class="modal-body">
+                <div class="progress mb-3">
+                    <div class="progress-bar" role="progressbar" style="width: 0%" id="progressBar"></div>
+                </div>
+                <p id="progressText">Initialisation...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notifications -->
+<div id="notifications" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>
+
+<script>
+    let refreshInterval;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadProcessingQueue();
+        loadSystemStatus();
+        
+        // Actualisation automatique toutes les 10 secondes
+        refreshInterval = setInterval(() => {
+            loadProcessingQueue();
+            loadSystemStatus();
+        }, 10000);
+    });
+
+    function loadSystemStatus() {
+        fetch('/api/system_status')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('activeRecordings').textContent = data.active_recordings;
+                document.getElementById('processingQueue').textContent = data.processing_queue;
+                document.getElementById('tempSegments').textContent = data.temp_segments;
+                
+                const liveCheckerStatus = document.getElementById('liveCheckerStatus');
+                if (data.live_checker_active) {
+                    liveCheckerStatus.textContent = 'Actif';
+                    liveCheckerStatus.className = 'badge bg-success';
+                } else {
+                    liveCheckerStatus.textContent = 'Inactif';
+                    liveCheckerStatus.className = 'badge bg-secondary';
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement du statut:', error);
+            });
+    }
+
+    function loadProcessingQueue() {
+        fetch('/api/processing_queue')
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('processingTableBody');
+                const noDataDiv = document.getElementById('noProcessingData');
+                
+                if (data.queue.length === 0) {
+                    tbody.innerHTML = '';
+                    noDataDiv.style.display = 'block';
+                } else {
+                    noDataDiv.style.display = 'none';
+                    tbody.innerHTML = data.queue.map(item => `
+                        <tr>
+                            <td>
+                                <strong>${item.stream_name}</strong>
+                            </td>
+                            <td>${new Date(item.timestamp).toLocaleString()}</td>
+                            <td>
+                                <span class="badge bg-info">${item.segments_count} segments</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-warning">En attente</span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="processSingleStream('${item.stream_name}')">
+                                    <i class="fas fa-play"></i> Traiter
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement de la file d\'attente:', error);
+                showNotification('Erreur lors du chargement de la file d\'attente', 'error');
+            });
+    }
+
+    function processAllSegments() {
+        showProgressModal('Traitement de tous les segments...');
+        
+        fetch('/api/process_segments', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideProgressModal();
+            if (data.success) {
+                showNotification(data.message, 'success');
+                loadProcessingQueue();
+                loadSystemStatus();
+            } else {
+                showNotification(data.error || 'Erreur lors du traitement', 'error');
+            }
+        })
+        .catch(error => {
+            hideProgressModal();
+            console.error('Erreur lors du traitement:', error);
+            showNotification('Erreur lors du traitement des segments', 'error');
+        });
+    }
+
+    function processSingleStream(streamName) {
+        showProgressModal(`Traitement des segments de ${streamName}...`);
+        
+        fetch('/api/process_segments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ stream_name: streamName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideProgressModal();
+            if (data.success) {
+                showNotification(`Segments de ${streamName} traités avec succès`, 'success');
+                loadProcessingQueue();
+                loadSystemStatus();
+            } else {
+                showNotification(data.error || 'Erreur lors du traitement', 'error');
+            }
+        })
+        .catch(error => {
+            hideProgressModal();
+            console.error('Erreur lors du traitement:', error);
+            showNotification(`Erreur lors du traitement des segments de ${streamName}`, 'error');
+        });
+    }
+
+    function refreshStatus() {
+        loadProcessingQueue();
+        loadSystemStatus();
+        showNotification('Statut actualisé', 'info');
+    }
+
+    function showProgressModal(text) {
+        document.getElementById('progressText').textContent = text;
+        document.getElementById('progressBar').style.width = '50%';
+        new bootstrap.Modal(document.getElementById('progressModal')).show();
+    }
+
+    function hideProgressModal() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('progressModal'));
+        if (modal) {
+            modal.hide();
+        }
+    }
+
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.getElementById('notifications').appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+
+    // Nettoyer l'intervalle quand on quitte la page
+    window.addEventListener('beforeunload', function() {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+        }
+    });
+</script>
+{% endblock %}

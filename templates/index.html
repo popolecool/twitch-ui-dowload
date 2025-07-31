@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Accueil - Twitch Stream Downloader{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="jumbotron bg-primary text-white rounded p-5 mb-4">
+            <h1 class="display-4">
+                <i class="fab fa-twitch"></i> Twitch Stream Downloader
+            </h1>
+            <p class="lead">
+                Téléchargez et enregistrez automatiquement vos streams Twitch préférés en temps réel
+            </p>
+            <hr class="my-4">
+            <p>
+                Gérez vos streams, visualisez vos enregistrements et configurez la réplication automatique
+            </p>
+            <a class="btn btn-light btn-lg" href="{{ url_for('streams_page') }}" role="button">
+                <i class="fas fa-stream"></i> Commencer
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-stream fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Gestion des Streams</h5>
+                <p class="card-text">
+                    Ajoutez et supprimez facilement les streams Twitch que vous souhaitez enregistrer.
+                    Démarrez et arrêtez les enregistrements en un clic.
+                </p>
+                <a href="{{ url_for('streams_page') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Gérer les Streams
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-video fa-3x text-success mb-3"></i>
+                <h5 class="card-title">Enregistrements</h5>
+                <p class="card-text">
+                    Consultez tous vos enregistrements passés, téléchargez-les ou gérez votre bibliothèque
+                    de vidéos sauvegardées.
+                </p>
+                <a href="{{ url_for('recordings_page') }}" class="btn btn-success">
+                    <i class="fas fa-folder-open"></i> Voir les Enregistrements
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-cog fa-3x text-warning mb-3"></i>
+                <h5 class="card-title">Paramètres</h5>
+                <p class="card-text">
+                    Configurez la qualité d'enregistrement et activez la réplication automatique
+                    vers vos serveurs FTP ou SMB.
+                </p>
+                <a href="{{ url_for('settings_page') }}" class="btn btn-warning">
+                    <i class="fas fa-wrench"></i> Configurer
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle"></i> Fonctionnalités
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success"></i> Enregistrement en temps réel</li>
+                            <li><i class="fas fa-check text-success"></i> Gestion multiple de streams</li>
+                            <li><i class="fas fa-check text-success"></i> Qualité d'enregistrement configurable</li>
+                            <li><i class="fas fa-check text-success"></i> Interface web intuitive</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success"></i> Réplication automatique FTP</li>
+                            <li><i class="fas fa-check text-success"></i> Support SMB/CIFS</li>
+                            <li><i class="fas fa-check text-success"></i> Historique des enregistrements</li>
+                            <li><i class="fas fa-check text-success"></i> Téléchargement direct</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info" role="alert">
+            <h6 class="alert-heading">
+                <i class="fas fa-lightbulb"></i> Prérequis
+            </h6>
+            <p class="mb-0">
+                Assurez-vous d'avoir <strong>streamlink</strong> installé sur votre système pour pouvoir enregistrer les streams Twitch.
+                <br>
+                Installation : <code>pip install streamlink</code>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Animation pour les cartes
+    $('.card').hover(
+        function() {
+            $(this).addClass('shadow-lg');
+        },
+        function() {
+            $(this).removeClass('shadow-lg');
+        }
+    );
+});
+</script>
+{% endblock %}

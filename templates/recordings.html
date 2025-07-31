@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block title %}Enregistrements - Twitch Stream Downloader{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="fas fa-video"></i> Enregistrements
+            </h2>
+            <div>
+                <button class="btn btn-outline-secondary" onclick="location.reload()">
+                    <i class="fas fa-sync-alt"></i> Actualiser
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-folder-open"></i> Bibliothèque d'Enregistrements
+                    <span class="badge bg-secondary ms-2">{{ recordings|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recordings %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <input type="text" class="form-control" id="searchInput" placeholder="Rechercher un enregistrement...">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <select class="form-select" id="sortSelect">
+                                <option value="date-desc">Plus récent d'abord</option>
+                                <option value="date-asc">Plus ancien d'abord</option>
+                                <option value="name-asc">Nom A-Z</option>
+                                <option value="name-desc">Nom Z-A</option>
+                                <option value="size-desc">Plus volumineux d'abord</option>
+                                <option value="size-asc">Plus petit d'abord</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="recordingsTable">
+                            <thead>
+                                <tr>
+                                    <th>Nom du fichier</th>
+                                    <th>Taille</th>
+                                    <th>Date d'enregistrement</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for recording in recordings %}
+                                <tr class="recording-row" data-filename="{{ recording.filename }}" data-size="{{ recording.size }}" data-date="{{ recording.date }}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-file-video text-primary me-2"></i>
+                                            <div>
+                                                <strong class="filename">{{ recording.filename }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ recording.filename.split('_')[0] if '_' in recording.filename else 'Stream' }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ (recording.size / 1024 / 1024) | round(1) }} MB</span>
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-calendar text-muted me-1"></i>
+                                        {{ recording.date }}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="/api/download/{{ recording.filename }}" class="btn btn-sm btn-primary" download>
+                                                <i class="fas fa-download"></i> Télécharger
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-info preview-btn" data-filename="{{ recording.filename }}">
+                                                <i class="fas fa-eye"></i> Aperçu
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger delete-recording" data-filename="{{ recording.filename }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Statistiques -->
+                    <div class="row mt-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h5>{{ recordings|length }}</h5>
+                                    <small>Enregistrements</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h5 id="totalSize">{{ (recordings | sum(attribute='size') / 1024 / 1024) | round(1) }} MB</h5>
+                                    <small>Taille totale</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h5 id="avgSize">{{ ((recordings | sum(attribute='size') / recordings|length) / 1024 / 1024) | round(1) if recordings|length > 0 else 0 }} MB</h5>
+                                    <small>Taille moyenne</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h5>{{ recordings|length }}</h5>
+                                    <small>Streams uniques</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-video fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Aucun enregistrement trouvé</h5>
+                        <p class="text-muted">Vos enregistrements apparaîtront ici une fois que vous aurez commencé à enregistrer des streams</p>
+                        <a href="{{ url_for('streams_page') }}" class="btn btn-primary">
+                            <i class="fas fa-stream"></i> Aller aux Streams
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour l'aperçu vidéo -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye"></i> Aperçu Vidéo
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <video id="previewVideo" controls style="max-width: 100%; max-height: 400px;">
+                    Votre navigateur ne supporte pas la lecture vidéo.
+                </video>
+                <div class="mt-3">
+                    <p class="text-muted mb-0" id="previewFilename"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Fermer
+                </button>
+                <a href="#" class="btn btn-primary" id="downloadFromPreview" download>
+                    <i class="fas fa-download"></i> Télécharger
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast pour les notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="notificationToast" class="toast" role="alert">
+        <div class="toast-header">
+            <i class="fas fa-info-circle text-primary me-2"></i>
+            <strong class="me-auto">Notification</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastMessage">
+            <!-- Message dynamique -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Fonction pour afficher les notifications
+    function showNotification(message, type = 'info') {
+        const toast = $('#notificationToast');
+        const toastBody = $('#toastMessage');
+        const toastHeader = toast.find('.toast-header i');
+        
+        toastHeader.removeClass().addClass('fas me-2');
+        if (type === 'success') {
+            toastHeader.addClass('fa-check-circle text-success');
+        } else if (type === 'error') {
+            toastHeader.addClass('fa-exclamation-circle text-danger');
+        } else {
+            toastHeader.addClass('fa-info-circle text-primary');
+        }
+        
+        toastBody.text(message);
+        
+        const bsToast = new bootstrap.Toast(toast[0]);
+        bsToast.show();
+    }
+    
+    // Recherche en temps réel
+    $('#searchInput').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase();
+        $('.recording-row').each(function() {
+            const filename = $(this).find('.filename').text().toLowerCase();
+            if (filename.includes(searchTerm)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    });
+    
+    // Tri des enregistrements
+    $('#sortSelect').change(function() {
+        const sortBy = $(this).val();
+        const tbody = $('#recordingsTable tbody');
+        const rows = tbody.find('tr').toArray();
+        
+        rows.sort(function(a, b) {
+            let aVal, bVal;
+            
+            switch(sortBy) {
+                case 'date-desc':
+                    aVal = new Date($(a).data('date'));
+                    bVal = new Date($(b).data('date'));
+                    return bVal - aVal;
+                case 'date-asc':
+                    aVal = new Date($(a).data('date'));
+                    bVal = new Date($(b).data('date'));
+                    return aVal - bVal;
+                case 'name-asc':
+                    aVal = $(a).data('filename').toLowerCase();
+                    bVal = $(b).data('filename').toLowerCase();
+                    return aVal.localeCompare(bVal);
+                case 'name-desc':
+                    aVal = $(a).data('filename').toLowerCase();
+                    bVal = $(b).data('filename').toLowerCase();
+                    return bVal.localeCompare(aVal);
+                case 'size-desc':
+                    aVal = parseInt($(a).data('size'));
+                    bVal = parseInt($(b).data('size'));
+                    return bVal - aVal;
+                case 'size-asc':
+                    aVal = parseInt($(a).data('size'));
+                    bVal = parseInt($(b).data('size'));
+                    return aVal - bVal;
+            }
+        });
+        
+        tbody.empty().append(rows);
+    });
+    
+    // Aperçu vidéo
+    $('.preview-btn').click(function() {
+        const filename = $(this).data('filename');
+        const videoUrl = `/api/download/${filename}`;
+        
+        $('#previewVideo').attr('src', videoUrl);
+        $('#previewFilename').text(filename);
+        $('#downloadFromPreview').attr('href', videoUrl);
+        
+        $('#previewModal').modal('show');
+    });
+    
+    // Nettoyer la vidéo quand le modal se ferme
+    $('#previewModal').on('hidden.bs.modal', function() {
+        $('#previewVideo')[0].pause();
+        $('#previewVideo').attr('src', '');
+    });
+    
+    // Supprimer un enregistrement
+    $('.delete-recording').click(function() {
+        const filename = $(this).data('filename');
+        const row = $(this).closest('tr');
+        
+        if (confirm(`Êtes-vous sûr de vouloir supprimer "${filename}" ?\nCette action est irréversible.`)) {
+            // Note: Cette fonctionnalité nécessiterait une route API supplémentaire
+            showNotification('Fonctionnalité de suppression à implémenter', 'info');
+        }
+    });
+    
+    // Gestion des erreurs de téléchargement
+    $('a[download]').click(function(e) {
+        const link = $(this);
+        const originalText = link.html();
+        
+        link.html('<i class="fas fa-spinner fa-spin"></i> Téléchargement...');
+        
+        // Restaurer le texte après un délai
+        setTimeout(function() {
+            link.html(originalText);
+        }, 2000);
+    });
+    
+    // Animation au survol des lignes
+    $('.recording-row').hover(
+        function() {
+            $(this).addClass('table-active');
+        },
+        function() {
+            $(this).removeClass('table-active');
+        }
+    );
+});
+</script>
+{% endblock %}

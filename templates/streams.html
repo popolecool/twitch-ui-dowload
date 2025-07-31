@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des Streams - Twitch Stream Downloader{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="fas fa-stream"></i> Gestion des Streams
+            </h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStreamModal">
+                <i class="fas fa-plus"></i> Ajouter un Stream
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list"></i> Liste des Streams
+                    <span class="badge bg-secondary ms-2" id="streamCount">{{ streams|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="streamsContainer">
+                    {% if streams %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>URL</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="streamsTable">
+                                    {% for stream in streams %}
+                                    <tr data-stream-id="{{ stream.id }}">
+                                        <td>
+                                            <strong>{{ stream.name }}</strong>
+                                        </td>
+                                        <td>
+                                            <a href="{{ stream.url }}" target="_blank" class="text-decoration-none">
+                                                {{ stream.url[:50] }}{% if stream.url|length > 50 %}...{% endif %}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-column gap-1">
+                                                {% if stream.name in active_recordings %}
+                                                    <span class="badge bg-danger">
+                                                        <span class="recording-indicator"></span>
+                                                        En cours d'enregistrement
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactif</span>
+                                                {% endif %}
+                                                <span class="badge bg-info live-status" data-stream="{{ stream.name }}">
+                                                    <i class="fas fa-spinner fa-spin"></i> Vérification...
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                {% if stream.name in active_recordings %}
+                                                    <button class="btn btn-sm btn-danger stop-recording" data-name="{{ stream.name }}">
+                                                        <i class="fas fa-stop"></i> Arrêter
+                                                    </button>
+                                                {% else %}
+                                                    <button class="btn btn-sm btn-success start-recording" data-name="{{ stream.name }}" data-url="{{ stream.url }}">
+                                                        <i class="fas fa-play"></i> Enregistrer
+                                                    </button>
+                                                {% endif %}
+                                                <button class="btn btn-sm btn-info check-live" data-name="{{ stream.name }}" title="Vérifier si en live">
+                                                    <i class="fas fa-satellite-dish"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger delete-stream" data-id="{{ stream.id }}" title="Supprimer">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-stream fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Aucun stream configuré</h5>
+                            <p class="text-muted">Ajoutez votre premier stream pour commencer à enregistrer</p>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStreamModal">
+                                <i class="fas fa-plus"></i> Ajouter un Stream
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour ajouter un stream -->
+<div class="modal fade" id="addStreamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus"></i> Ajouter un Stream
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addStreamForm">
+                    <div class="mb-3">
+                        <label for="streamName" class="form-label">Nom du Stream</label>
+                        <input type="text" class="form-control" id="streamName" required
+                               placeholder="Ex: MonStreamerPreferé">
+                        <div class="form-text">Nom d'identification pour ce stream</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="streamUrl" class="form-label">URL Twitch</label>
+                        <input type="url" class="form-control" id="streamUrl" required
+                               placeholder="https://www.twitch.tv/nomdustreamer">
+                        <div class="form-text">URL complète du stream Twitch</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+                <button type="button" class="btn btn-primary" id="saveStream">
+                    <i class="fas fa-save"></i> Ajouter
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast pour les notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="notificationToast" class="toast" role="alert">
+        <div class="toast-header">
+            <i class="fas fa-info-circle text-primary me-2"></i>
+            <strong class="me-auto">Notification</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastMessage">
+            <!-- Message dynamique -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Fonction pour afficher les notifications
+    function showNotification(message, type = 'info') {
+        const toast = $('#notificationToast');
+        const toastBody = $('#toastMessage');
+        const toastHeader = toast.find('.toast-header i');
+        
+        // Changer l'icône selon le type
+        toastHeader.removeClass().addClass('fas me-2');
+        if (type === 'success') {
+            toastHeader.addClass('fa-check-circle text-success');
+        } else if (type === 'error') {
+            toastHeader.addClass('fa-exclamation-circle text-danger');
+        } else {
+            toastHeader.addClass('fa-info-circle text-primary');
+        }
+        
+        toastBody.text(message);
+        
+        const bsToast = new bootstrap.Toast(toast[0]);
+        bsToast.show();
+    }
+    
+    // Ajouter un stream
+    $('#saveStream').click(function() {
+        const name = $('#streamName').val().trim();
+        const url = $('#streamUrl').val().trim();
+        
+        if (!name || !url) {
+            showNotification('Veuillez remplir tous les champs', 'error');
+            return;
+        }
+        
+        $.ajax({
+            url: '/api/streams',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ name: name, url: url }),
+            success: function(response) {
+                showNotification('Stream ajouté avec succès', 'success');
+                $('#addStreamModal').modal('hide');
+                $('#addStreamForm')[0].reset();
+                location.reload(); // Recharger la page pour voir le nouveau stream
+            },
+            error: function() {
+                showNotification('Erreur lors de l\'ajout du stream', 'error');
+            }
+        });
+    });
+    
+    // Supprimer un stream
+    $('.delete-stream').click(function() {
+        const streamId = $(this).data('id');
+        const row = $(this).closest('tr');
+        
+        if (confirm('Êtes-vous sûr de vouloir supprimer ce stream ?')) {
+            $.ajax({
+                url: '/api/streams',
+                method: 'DELETE',
+                contentType: 'application/json',
+                data: JSON.stringify({ id: streamId }),
+                success: function() {
+                    showNotification('Stream supprimé avec succès', 'success');
+                    row.fadeOut(300, function() {
+                        $(this).remove();
+                        updateStreamCount();
+                    });
+                },
+                error: function() {
+                    showNotification('Erreur lors de la suppression', 'error');
+                }
+            });
+        }
+    });
+    
+    // Démarrer un enregistrement
+    $('.start-recording').click(function() {
+        const name = $(this).data('name');
+        const url = $(this).data('url');
+        const button = $(this);
+        
+        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Démarrage...');
+        
+        $.ajax({
+            url: '/api/start_recording',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ name: name, url: url }),
+            success: function(response) {
+                showNotification(response.message, 'success');
+                location.reload(); // Recharger pour mettre à jour le statut
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                showNotification(response.error || 'Erreur lors du démarrage', 'error');
+                button.prop('disabled', false).html('<i class="fas fa-play"></i> Enregistrer');
+            }
+        });
+    });
+    
+    // Arrêter un enregistrement
+    $('.stop-recording').click(function() {
+        const name = $(this).data('name');
+        const button = $(this);
+        
+        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Arrêt...');
+        
+        $.ajax({
+            url: '/api/stop_recording',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ name: name }),
+            success: function(response) {
+                showNotification(response.message, 'success');
+                location.reload(); // Recharger pour mettre à jour le statut
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                showNotification(response.error || 'Erreur lors de l\'arrêt', 'error');
+                button.prop('disabled', false).html('<i class="fas fa-stop"></i> Arrêter');
+            }
+        });
+    });
+    
+    // Vérifier le statut en live d'un stream
+    $('.check-live').click(function() {
+        const streamName = $(this).data('name');
+        const button = $(this);
+        const statusBadge = $(`.live-status[data-stream="${streamName}"]`);
+        
+        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+        statusBadge.removeClass('bg-success bg-danger').addClass('bg-info')
+                   .html('<i class="fas fa-spinner fa-spin"></i> Vérification...');
+        
+        $.ajax({
+            url: `/api/check_live/${streamName}`,
+            method: 'GET',
+            success: function(response) {
+                if (response.is_live) {
+                    statusBadge.removeClass('bg-info bg-danger').addClass('bg-success')
+                               .html('<i class="fas fa-circle"></i> En Live');
+                    showNotification(`${streamName} est actuellement en live!`, 'success');
+                } else {
+                    statusBadge.removeClass('bg-info bg-success').addClass('bg-danger')
+                               .html('<i class="fas fa-circle"></i> Hors ligne');
+                    showNotification(`${streamName} n'est pas en live`, 'info');
+                }
+            },
+            error: function() {
+                statusBadge.removeClass('bg-info bg-success').addClass('bg-warning')
+                           .html('<i class="fas fa-exclamation-triangle"></i> Erreur');
+                showNotification('Erreur lors de la vérification du statut', 'error');
+            },
+            complete: function() {
+                button.prop('disabled', false).html('<i class="fas fa-satellite-dish"></i>');
+            }
+        });
+    });
+    
+    // Vérifier automatiquement le statut de tous les streams au chargement
+    function checkAllLiveStatus() {
+        $('.live-status').each(function() {
+            const streamName = $(this).data('stream');
+            const statusBadge = $(this);
+            
+            $.ajax({
+                url: `/api/check_live/${streamName}`,
+                method: 'GET',
+                success: function(response) {
+                    if (response.is_live) {
+                        statusBadge.removeClass('bg-info bg-danger').addClass('bg-success')
+                                   .html('<i class="fas fa-circle"></i> En Live');
+                    } else {
+                        statusBadge.removeClass('bg-info bg-success').addClass('bg-danger')
+                                   .html('<i class="fas fa-circle"></i> Hors ligne');
+                    }
+                },
+                error: function() {
+                    statusBadge.removeClass('bg-info bg-success').addClass('bg-warning')
+                               .html('<i class="fas fa-exclamation-triangle"></i> Erreur');
+                }
+            });
+        });
+    }
+    
+    // Vérifier le statut au chargement de la page
+    setTimeout(checkAllLiveStatus, 1000);
+    
+    // Actualiser le statut toutes les 2 minutes
+    setInterval(checkAllLiveStatus, 120000);
+    
+    // Mettre à jour le compteur de streams
+    function updateStreamCount() {
+        const count = $('#streamsTable tr').length;
+        $('#streamCount').text(count);
+    }
+    
+    // Actualiser automatiquement le statut toutes les 30 secondes
+    setInterval(function() {
+        location.reload();
+    }, 30000);
+});
+</script>
+{% endblock %}
