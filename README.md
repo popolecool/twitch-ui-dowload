@@ -21,7 +21,7 @@ Application FastAPI qui surveille des chaines Twitch, enregistre automatiquement
 docker compose up --build
 ```
 
-3. Ouvrir l'UI admin: http://localhost:8000
+3. Ouvrir l'UI admin: http://localhost:8162
 4. Se connecter avec `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
 
 ## Variables d'environnement
