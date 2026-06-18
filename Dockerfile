@@ -1,36 +1,23 @@
-ARG PYTHON_VERSION=3.13.5
-FROM python:${PYTHON_VERSION}-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+FROM python:3.12-slim
 
 WORKDIR /app
 
-ARG UID=10001
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "${UID}" \
-    appuser
+RUN apt-get update \
+  && apt-get install -y ffmpeg \
+  && rm -rf /var/lib/apt/lists/*
 
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Installer les dépendances
-COPY requirements.txt .
-RUN pip install --upgrade pip
-RUN python -m pip install --no-cache-dir -r requirements.txt
+COPY app /app/app
+COPY requirements.txt /app/requirements.txt
 
-# Copier le code source
-COPY . .
+ENV DATA_DIR=/app/data \
+    DB_PATH=/app/db/app.db \
+    APP_SECRET=changeme
 
-# Créer et donner la propriété des dossiers nécessaires
-RUN mkdir -p /app/recordings /app/temp_segments \
-    && touch /app/streams.json \
-    && chown -R appuser:appuser /app
-USER appuser
-# Passer en utilisateur non privilégié
+VOLUME ["/app/data", "/app/db"]
 
-EXPOSE 5000
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "3", "--timeout", "120", "app:app"]
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
